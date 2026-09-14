@@ -18,13 +18,20 @@ const (
 	periodLayout = "200601021504"
 )
 
+// DefaultTimeout bounds a single request. Without one a hung connection blocks
+// the caller for as long as the peer keeps it open, which for a caller polling
+// on a loop means the loop stops rather than skips.
+const DefaultTimeout = 30 * time.Second
+
 type EntsoeClient struct {
-	apiKey string
+	apiKey     string
+	httpClient *http.Client
 }
 
 func NewEntsoeClient(apiKey string) *EntsoeClient {
 	c := EntsoeClient{
-		apiKey: apiKey,
+		apiKey:     apiKey,
+		httpClient: &http.Client{Timeout: DefaultTimeout},
 	}
 	return &c
 }
@@ -36,9 +43,16 @@ func NewEntsoeClientFromEnv() *EntsoeClient {
 	}
 
 	c := EntsoeClient{
-		apiKey: apiKey,
+		apiKey:     apiKey,
+		httpClient: &http.Client{Timeout: DefaultTimeout},
 	}
 	return &c
+}
+
+// SetHTTPClient replaces the client used for every request, for callers that
+// need their own timeout, transport or instrumentation.
+func (c *EntsoeClient) SetHTTPClient(httpClient *http.Client) {
+	c.httpClient = httpClient
 }
 
 // Helper functions
@@ -728,7 +742,11 @@ func parseAcknowledgementMarketDocument(data []byte) (*AcknowledgementMarketDocu
 }
 
 func (c *EntsoeClient) sendRequest(paramStr string) ([]byte, error) {
-	resp, err := http.Get("https://web-api.tp.entsoe.eu/api?securityToken=" + c.apiKey + "&" + paramStr)
+	httpClient := c.httpClient
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: DefaultTimeout}
+	}
+	resp, err := httpClient.Get("https://web-api.tp.entsoe.eu/api?securityToken=" + c.apiKey + "&" + paramStr)
 	if err != nil {
 		return nil, err
 	}
