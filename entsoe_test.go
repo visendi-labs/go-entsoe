@@ -484,15 +484,35 @@ func TestActualGenerationOutputPerGenerationUnit(t *testing.T) {
 // 4.4.8. Aggregated Generation per Type [16.1.B&C]
 func TestAggregatedGenerationPerType(t *testing.T) {
 	c := NewEntsoeClientFromEnv()
+	psrType := PsrTypeFossilBrownCoalLignite
 	doc, err := c.GetAggregatedGenerationPerType(
 		ProcessTypeRealised,
-		PsrTypeFossilBrownCoalLignite,
 		DomainCZ,
 		genTime("201512302300"),
 		genTime("201512312300"),
+		&psrType,
 	)
 	assert.NotNil(t, doc)
 	assert.Nil(t, err)
+}
+
+func TestAggregatedGenerationAllTypes(t *testing.T) {
+	c := NewEntsoeClientFromEnv()
+	doc, err := c.GetAggregatedGenerationPerType(
+		ProcessTypeRealised,
+		DomainCZ,
+		genTime("201512302300"),
+		genTime("201512312300"),
+		nil,
+	)
+	assert.NotNil(t, doc)
+	assert.Nil(t, err)
+
+	psrTypes := map[string]bool{}
+	for _, ts := range doc.TimeSeries {
+		psrTypes[ts.MktPSRType.PsrType] = true
+	}
+	assert.Greater(t, len(psrTypes), 1)
 }
 
 // 4.4.9. Aggregated Filling Rate of Water Reservoirs and Hydro Storage Plants [16.1.D]
