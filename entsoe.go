@@ -614,20 +614,24 @@ func (c *EntsoeClient) GetActualGenerationOutputPerGenerationUnit(
 }
 
 // 4.4.8. Aggregated Generation per Type [16.1.B&C]
+// A nil psrType returns every production type in one document, each carried by
+// its own TimeSeries.
 func (c *EntsoeClient) GetAggregatedGenerationPerType(
 	processType ProcessType,
-	psrType PsrType,
 	inDomain DomainType,
 	periodStart time.Time,
 	periodEnd time.Time,
+	psrType *PsrType,
 ) (*GLMarketDocument, error) {
 	params := url.Values{}
 	params.Add(ParameterDocumentType, string(DocumentTypeActualGenerationPerType))
 	params.Add(ParameterProcessType, string(processType))
-	params.Add(ParameterPsrType, string(psrType))
 	params.Add(ParameterInDomain, string(inDomain))
 	params.Add(ParameterPeriodStart, periodStart.UTC().Format(periodLayout))
 	params.Add(ParameterPeriodEnd, periodEnd.UTC().Format(periodLayout))
+	if psrType != nil {
+		params.Add(ParameterPsrType, string(*psrType))
+	}
 	return c.requestGLMarketDocument(params)
 }
 
